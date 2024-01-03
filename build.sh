@@ -1,1 +1,1 @@
-nuitka3 --onefile main.py -o cmsa
+nuitka3 --onefile --standalone main.py -o cmsa
