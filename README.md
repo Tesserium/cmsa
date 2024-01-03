@@ -1,2 +1,2 @@
-# cmsa
-Successor of adsa, optimized and rewritten
+# Crawl Morgue Statistics Analyzer (WIP)
+Successor of adsa, optimized (soon) and rewritten
