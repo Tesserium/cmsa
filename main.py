@@ -61,7 +61,18 @@ print("Downloading Finished")
 os.system("clear")
 
 def parseCombo(comb):
-	return re.split(" ", comb)
+	res = re.split(" ", comb)
+	if len(res) == 2:
+		return re.split(" ", comb)
+	elif len(res) == 3:
+		if res[1] == "Draconian":
+			return res[1:]
+		if res[1] == "Elf" or res[1] == "Orc" or res[1] == "Stalker":
+			return [res[0] + " " + res[1], res[2]]
+		else:
+			return [res[0], res[1] + " " + res[2]]
+	else:
+		return [res[0] + " " + res[1], res[2] + " " + res[3]]
 	
 
 class Game:
