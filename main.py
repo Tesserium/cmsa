@@ -1,6 +1,8 @@
 from requests import get
 import re
 import os
+import threading
+from math import ceil
 from wget import download
 from operator import attrgetter
 
@@ -34,18 +36,14 @@ if os.path.exists(path) == 0:
 	os.mkdir(path)
 
 for i in range(len(urls)):
-	if files[i][-1] == 't':
-		temp = files[i] + ".gz";
-		if os.path.exists(path + "/" + temp):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + temp + " Exists, Skipping")		
-			unzipCommand = "gzip -nd " + path + "/" + temp
-			os.system(unzipCommand)
-	elif files[i][-1] == 'z':
-		temp = files[i][:-3]
-		if os.path.exists(path + "/" + temp):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + temp + " Exists, Skipping")
+	if files[i][-1] == 't' and os.path.exists(path + "/" + files[i] + ".gz"):
+		print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i] + ".gz" + " Exists, Skipping")		
+		unzipCommand = "gzip -nd " + path + "/" + temp
+		os.system(unzipCommand)
+	elif files[i][-1] == 'z' and os.path.exists(path + "/" + files[i][:-3]):
+		print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i][:-3] + " Exists, Skipping")
 	elif os.path.exists(path + "/" + files[i]):
-		os.remove(path + "/" + files[i])
+		print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i] + " Exists, Skipping")
 	else:
 		print("Downloading file " + str(i + 1) + " / " + str(len(urls)), files[i])
 		download(urls[i], path, None)
@@ -56,9 +54,6 @@ for i in range(len(urls)):
 		files[i] = path + "/" + files[i][:-3]
 	else:
 		files[i] = path + "/" + files[i]
-		
-print("Downloading Finished")
-os.system("clear")
 
 def parseCombo(comb):
 	res = re.split(" ", comb)
@@ -92,6 +87,8 @@ leveledBranches = "Dungeon|Lair|Orc|Elven|Vaults|Depths|Zot|Cocytus|Gehenna|Tart
 otherBranches = "Hell|Pandemonium|bailey|sewer|ossuary|cave|volcano|wizard|ziggurat|bazaar|trove|gauntlet|desolation"
 
 for i in files:
+	if os.path.exists(i) == 0:
+		continue
 	pf = open(i)
 	print("Processing " + i + "...")
 	content = pf.read()
@@ -111,6 +108,8 @@ for i in files:
 	else:
 		state = re.search("You were (in|on) .*\n", content)[0]
 		place = re.search(leveledBranches + "|" + otherBranches, state)[0]
+		if place == "Elven":
+			place = "Elf"
 		if re.search("[0-9]+", state) != None:
 			level = re.search("[0-9]+", state)[0]
 			place += ":" + str(level)
