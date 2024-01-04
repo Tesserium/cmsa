@@ -2,11 +2,15 @@ from requests import get
 import re
 import os
 import threading
+from random import random 
+from time import sleep
 from math import ceil
 from wget import download
 from operator import attrgetter
 
-username = "FedhasFedhasFedhas"
+username = input("Please input desired crawl username (Default FedhasFedhasFedhas): \n")
+if username == "":
+	username = "FedhasFedhasFedhas"
 
 CUE = "https://underhound.eu/crawl/morgue/" + username
 CXC = "https://crawl.xtahua.com/crawl/morgue/" + username
@@ -35,19 +39,25 @@ path = os.getcwd() + "/" + username
 if os.path.exists(path) == 0:
 	os.mkdir(path)
 
+bs = ceil(len(urls) / 64)
+def convo(i, n):
+	return i // bs + min(i % bs, n % bs) * 64 + max(0, i % bs - n % bs - 1) * 63 
+	
+
 def retrieveFiles(l, r):
 	for i in range(l, r + 1):
 		if files[i][-1] == 't' and os.path.exists(path + "/" + files[i] + ".gz"):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i] + ".gz" + " Exists, Skipping")		
+			print("File " + str(convo(i, len(urls)) + 1) + " / " + str(len(urls)) + " " + files[i] + ".gz" + " Exists, Skipping")		
 			unzipCommand = "gzip -nd " + path + "/" + temp
 			os.system(unzipCommand)
 		elif files[i][-1] == 'z' and os.path.exists(path + "/" + files[i][:-3]):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i][:-3] + " Exists, Skipping")
+			print("File " + str(convo(i, len(urls)) + 1) + " / " + str(len(urls)) + " " + files[i][:-3] + " Exists, Skipping")
 		elif os.path.exists(path + "/" + files[i]):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i] + " Exists, Skipping")
+			print("File " + str(convo(i, len(urls)) + 1) + " / " + str(len(urls)) + " " + files[i] + " Exists, Skipping")
 		else:
-			print("Downloading file " + str(i + 1) + " / " + str(len(urls)), files[i])
+			print("Downloading file " + str(convo(i, len(urls)) + 1) + " / " + str(len(urls)), files[i])
 			download(urls[i], path, None)
+			sleep(random())
 			if files[i][-1] == 'z':
 				unzipCommand = "gzip -nd " + path + "/" + files[i]
 				os.system(unzipCommand)
@@ -57,8 +67,7 @@ def retrieveFiles(l, r):
 			files[i] = path + "/" + files[i]
 
 threadlist = []
-bs = ceil(len(urls) / 13)
-for i in range(12):
+for i in range(64):
 	l = bs * i
 	r = min(bs * (i + 1) - 1, len(urls) - 1)
 	tt = threading.Thread(target = retrieveFiles, args = (l, r, ))
@@ -79,8 +88,10 @@ def parseCombo(comb):
 			return [res[0] + " " + res[1], res[2]]
 		else:
 			return [res[0], res[1] + " " + res[2]]
-	else:
+	elif len(res) == 4:
 		return [res[0] + " " + res[1], res[2] + " " + res[3]]
+	else:
+		return None
 	
 
 class Game:
@@ -97,7 +108,7 @@ class Game:
 
 games = []
 leveledBranches = "Dungeon|Lair|Orc|Elven|Vaults|Depths|Zot|Cocytus|Gehenna|Tartarus|Dis|Swamp|Shoals|Snake|Spider|Slime|Crypt|Tomb|Abyss"
-otherBranches = "Hell|Pandemonium|bailey|sewer|ossuary|cave|volcano|wizard|ziggurat|bazaar|trove|gauntlet|desolation"
+otherBranches = "Temple|Hell|Pandemonium|bailey|sewer|ossuary|cave|volcano|wizard|ziggurat|bazaar|trove|Gauntlet|Desolation"
 
 for i in files:
 	if os.path.exists(i) == 0:
@@ -107,7 +118,13 @@ for i in files:
 	content = pf.read()
 	sc = int(re.search("[0-9]+ \w", content)[0][:-2])
 	ver = re.search("version .[0-9a-zA-Z-.]*", content)[0][8:]
+	if re.search("( as a|as an) .* o", content) == None:
+		print("Can't find combo in morgue file " + i + ", Skipping")
+		continue
 	comb = parseCombo(re.search("( as a|as an) .* o", content)[0][6:-2])
+	if comb == None:
+		print("Can't find combo in morgue file " + i + ", Skipping")
+		continue
 	rt = re.search("[0-9]+:[0-9]+:[0-9]+", content)[0]
 	turn = re.search("[0-9]+ t", content)[0][:-2]
 	if re.search("worshipped", content) == None:
@@ -118,6 +135,8 @@ for i in files:
 	sprint = 0
 	if re.search("Escaped with the Orb", content) != None:
 		place = "Win!"
+	elif re.search("You escaped", content) != None:
+		place = "Escaped Alive."
 	else:
 		state = re.search("You were (in|on) .*\n", content)[0]
 		place = re.search(leveledBranches + "|" + otherBranches, state)[0]
@@ -132,6 +151,8 @@ for i in files:
 				
 	if place[0] >= 'a' and place[0] <= 'z':
 		place = place[0].upper() + place[1:]
+	if re.search("Sprint", content) != None:
+		sprint = 1
 	games.append(Game(sc, ver, comb, rt, turn, god, place, xl, sprint))
 	
 games.sort(key = attrgetter('score', 'turns'), reverse = True)
