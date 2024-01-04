@@ -84,7 +84,7 @@ def parseCombo(comb):
 	elif len(res) == 3:
 		if res[1] == "Draconian":
 			return res[1:]
-		if res[1] == "Elf" or res[1] == "Orc" or res[1] == "Stalker":
+		if res[1] == "Elf" or res[1] == "Orc" or res[1] == "Stalker" or res[1] == "Dwarf":
 			return [res[0] + " " + res[1], res[2]]
 		else:
 			return [res[0], res[1] + " " + res[2]]
