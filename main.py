@@ -1,6 +1,8 @@
 from requests import get
 import re
 import os
+import threading
+from math import ceil
 from wget import download
 from operator import attrgetter
 
@@ -33,32 +35,38 @@ path = os.getcwd() + "/" + username
 if os.path.exists(path) == 0:
 	os.mkdir(path)
 
-for i in range(len(urls)):
-	if files[i][-1] == 't':
-		temp = files[i] + ".gz";
-		if os.path.exists(path + "/" + temp):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + temp + " Exists, Skipping")		
+def retrieveFiles(l, r):
+	for i in range(l, r + 1):
+		if files[i][-1] == 't' and os.path.exists(path + "/" + files[i] + ".gz"):
+			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i] + ".gz" + " Exists, Skipping")		
 			unzipCommand = "gzip -nd " + path + "/" + temp
 			os.system(unzipCommand)
-	elif files[i][-1] == 'z':
-		temp = files[i][:-3]
-		if os.path.exists(path + "/" + temp):
-			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + temp + " Exists, Skipping")
-	elif os.path.exists(path + "/" + files[i]):
-		os.remove(path + "/" + files[i])
-	else:
-		print("Downloading file " + str(i + 1) + " / " + str(len(urls)), files[i])
-		download(urls[i], path, None)
+		elif files[i][-1] == 'z' and os.path.exists(path + "/" + files[i][:-3]):
+			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i][:-3] + " Exists, Skipping")
+		elif os.path.exists(path + "/" + files[i]):
+			print("File " + str(i + 1) + " / " + str(len(urls)) + " " + files[i] + " Exists, Skipping")
+		else:
+			print("Downloading file " + str(i + 1) + " / " + str(len(urls)), files[i])
+			download(urls[i], path, None)
+			if files[i][-1] == 'z':
+				unzipCommand = "gzip -nd " + path + "/" + files[i]
+				os.system(unzipCommand)
 		if files[i][-1] == 'z':
-			unzipCommand = "gzip -nd " + path + "/" + files[i]
-			os.system(unzipCommand)
-	if files[i][-1] == 'z':
-		files[i] = path + "/" + files[i][:-3]
-	else:
-		files[i] = path + "/" + files[i]
-		
-print("Downloading Finished")
-os.system("clear")
+			files[i] = path + "/" + files[i][:-3]
+		else:
+			files[i] = path + "/" + files[i]
+
+threadlist = []
+bs = ceil(len(urls) / 13)
+for i in range(12):
+	l = bs * i
+	r = min(bs * (i + 1) - 1, len(urls) - 1)
+	tt = threading.Thread(target = retrieveFiles, args = (l, r, ))
+	tt.start()
+	threadlist.append(tt)
+
+for i in threadlist:
+	i.join()
 
 def parseCombo(comb):
 	res = re.split(" ", comb)
@@ -92,6 +100,8 @@ leveledBranches = "Dungeon|Lair|Orc|Elven|Vaults|Depths|Zot|Cocytus|Gehenna|Tart
 otherBranches = "Hell|Pandemonium|bailey|sewer|ossuary|cave|volcano|wizard|ziggurat|bazaar|trove|gauntlet|desolation"
 
 for i in files:
+	if os.path.exists(i) == 0:
+		continue
 	pf = open(i)
 	print("Processing " + i + "...")
 	content = pf.read()
@@ -111,6 +121,8 @@ for i in files:
 	else:
 		state = re.search("You were (in|on) .*\n", content)[0]
 		place = re.search(leveledBranches + "|" + otherBranches, state)[0]
+		if place == "Elven":
+			place = "Elf"
 		if re.search("[0-9]+", state) != None:
 			level = re.search("[0-9]+", state)[0]
 			place += ":" + str(level)
@@ -123,10 +135,10 @@ for i in files:
 	games.append(Game(sc, ver, comb, rt, turn, god, place, xl, sprint))
 	
 games.sort(key = attrgetter('score', 'turns'), reverse = True)
-print("Score".ljust(10), "Version".ljust(25), "Species".ljust(20), "Background".ljust(20), "Real Time".ljust(9), "Turncount".ljust(7), "God".ljust(20), "Place".ljust(15), "Exp Level".ljust(10), "Game Mode".ljust(6))
+print("Score".ljust(10), "Version".ljust(25), "Species".ljust(20), "Background".ljust(20), "Real Time".ljust(9), "Turncount".ljust(9), "God".ljust(20), "Place".ljust(15), "Exp Level".ljust(10), "Game Mode".ljust(6))
 for i in games:
 	if i.sprint == 1:
 		spr = "Sprint"
 	else: 
 		spr = "Crawl"
-	print(str(i.score).ljust(10), i.version.ljust(25), i.comboo[0].ljust(20), i.comboo[1].ljust(20), i.realtime.ljust(9), i.turns.ljust(7), i.god.ljust(20), i.place.ljust(15), ("Lv." + i.level).ljust(10), spr.ljust(6))
+	print(str(i.score).ljust(10), i.version.ljust(25), i.comboo[0].ljust(20), i.comboo[1].ljust(20), i.realtime.ljust(9), i.turns.ljust(9), i.god.ljust(20), i.place.ljust(15), ("Lv." + i.level).ljust(10), spr.ljust(6))
